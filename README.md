@@ -703,6 +703,30 @@ docker-compose exec app rails test
 
 ---
 
+## 🔌 Integración Futura con DIAN
+
+El sistema está preparado arquitectónicamente para integrarse con la entidad tributaria nacional (DIAN u organismo equivalente) sin requerir cambios estructurales mayores.
+
+### Preparación Actual
+
+- ✅ **Patrón de Clients**: La arquitectura ya utiliza HTTP Clients para comunicación entre servicios, que puede extenderse para DIAN
+- ✅ **Punto de integración**: El servicio `EmitirFacturaService` es el lugar natural para agregar la integración
+- ✅ **Separación de capas**: La lógica de integración se aislaría en la capa de Infraestructura (Clients)
+- ✅ **Sin acoplamiento**: La integración no afectaría el funcionamiento interno actual
+
+### Implementación Futura
+
+Para más detalles sobre cómo se implementaría la integración con DIAN, consulta la sección **"Integración Futura con Entidad Tributaria (DIAN)"** en [`ARCHITECTURE.md`](ARCHITECTURE.md).
+
+**Resumen de lo que se requeriría:**
+1. Crear `DianClient` en `app/clients/` siguiendo el patrón de `ClientServiceClient` y `AuditServiceClient`
+2. Crear `EnviarFacturaDianService` para orquestar el envío a DIAN
+3. Agregar estados adicionales a las facturas: `pendiente_dian`, `aprobada_dian`, etc.
+4. Mapear el formato interno de facturas al formato requerido por DIAN
+5. Implementar retry y manejo de errores para resiliencia
+
+---
+
 ## 📝 Nota Histórica sobre Oracle
 
 > Inicialmente se intentó usar Oracle Database para esta aplicación, pero debido a problemas con la descarga de Oracle Instant Client, se decidió cambiar a PostgreSQL. 

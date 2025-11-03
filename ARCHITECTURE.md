@@ -238,5 +238,170 @@ Controllers → Services → Models → Database
 
 ---
 
+## 🔌 Integración Futura con Entidad Tributaria (DIAN)
+
+### Preparación Arquitectónica
+
+La arquitectura actual está diseñada para facilitar la integración futura con la entidad tributaria nacional (DIAN u organismo equivalente) sin requerir cambios estructurales mayores.
+
+#### Patrón de Integración
+
+El sistema ya utiliza el patrón de **HTTP Clients** en la capa de infraestructura (`app/clients/`), que puede extenderse para integrar servicios externos:
+
+**Estructura actual:**
+```
+services/invoice-service/app/clients/
+├── client_service_client.rb      # Integración con Client Service
+└── audit_service_client.rb       # Integración con Audit Service
+```
+
+**Para DIAN se agregaría:**
+```
+services/invoice-service/app/clients/
+└── dian_client.rb                # Integración con DIAN (futuro)
+```
+
+#### Punto de Integración
+
+El servicio `EmitirFacturaService` es el punto natural donde se integraría DIAN:
+
+```ruby
+# Estructura actual (simplificada)
+class EmitirFacturaService
+  def ejecutar(factura_id)
+    factura = Factura.find(factura_id)
+    factura.emitir!  # Genera número de factura
+    
+    # 1. Registrar auditoría (actual)
+    @audit_service_client.registrar_evento(...)
+    
+    # 2. Enviar a DIAN (futuro - aquí se agregaría)
+    # @dian_client.enviar_factura(factura)
+    
+    factura
+  end
+end
+```
+
+#### Consideraciones de Implementación
+
+**1. Formato de Datos:**
+- Las facturas ya incluyen toda la información necesaria (cliente, items, totales, impuestos)
+- Se requerirá mapear el formato interno al formato requerido por DIAN (XML, JSON, etc.)
+
+**2. Validaciones Adicionales:**
+- Validar que la factura cumple con requisitos de DIAN antes de enviar
+- Manejar respuestas de DIAN (aprobada, rechazada, pendiente)
+
+**3. Manejo de Estados:**
+- Agregar estados adicionales: `pendiente_dian`, `aprobada_dian`, `rechazada_dian`
+- Mantener el estado local mientras se procesa en DIAN
+
+**4. Resiliencia:**
+- Implementar retry en caso de fallos temporales
+- Cola de reintentos para facturas no enviadas
+- Logging detallado de intentos y respuestas
+
+**5. Separación de Responsabilidades:**
+- Crear un nuevo servicio: `EnviarFacturaDianService`
+- Aislar la lógica de integración en el Client
+- No afectar el flujo principal si DIAN está caído (opcional, según requerimientos)
+
+#### Ejemplo de Implementación Futura
+
+```ruby
+# app/clients/dian_client.rb
+class DianClient
+  include HTTParty
+  
+  def initialize(base_url = nil)
+    @base_url = base_url || ENV.fetch('DIAN_API_URL')
+    self.class.base_uri @base_url
+    self.class.headers 'Content-Type' => 'application/json'
+  end
+  
+  def enviar_factura(factura)
+    body = mapear_a_formato_dian(factura)
+    response = self.class.post('/api/facturas', body: body.to_json)
+    
+    if response.success?
+      { estado: 'enviada', numero_autorizacion: response['numero_autorizacion'] }
+    else
+      { estado: 'rechazada', error: response['mensaje'] }
+    end
+  rescue => e
+    Rails.logger.error "Error enviando factura a DIAN: #{e.message}"
+    { estado: 'error', error: e.message }
+  end
+  
+  private
+  
+  def mapear_a_formato_dian(factura)
+    {
+      numero_factura: factura.numero_factura,
+      fecha_emision: factura.fecha_emision,
+      cliente: {
+        nit: obtener_nit_cliente(factura.cliente_id),
+        nombre: obtener_nombre_cliente(factura.cliente_id)
+      },
+      items: factura.items_factura.map { |item| ... },
+      totales: {
+        subtotal: factura.subtotal,
+        impuestos: factura.impuestos,
+        total: factura.total
+      }
+    }
+  end
+end
+
+# app/services/enviar_factura_dian_service.rb
+class EnviarFacturaDianService
+  def initialize(dian_client: nil)
+    @dian_client = dian_client || DianClient.new
+  end
+  
+  def ejecutar(factura_id)
+    factura = Factura.find(factura_id)
+    resultado = @dian_client.enviar_factura(factura)
+    
+    factura.update(
+      estado_dian: resultado[:estado],
+      numero_autorizacion_dian: resultado[:numero_autorizacion],
+      fecha_envio_dian: DateTime.current
+    )
+    
+    resultado
+  end
+end
+
+# Modificación en EmitirFacturaService
+class EmitirFacturaService
+  def ejecutar(factura_id)
+    factura = Factura.find(factura_id)
+    factura.emitir!
+    
+    # Auditoría
+    @audit_service_client.registrar_evento(...)
+    
+    # Integración DIAN (futuro)
+    if ENV['ENABLE_DIAN_INTEGRATION'] == 'true'
+      EnviarFacturaDianService.new.ejecutar(factura.id)
+    end
+    
+    factura
+  end
+end
+```
+
+#### Ventajas de la Arquitectura Actual
+
+✅ **Separación de capas**: La lógica de integración estaría aislada en Clients (Infraestructura)
+✅ **Services extensibles**: Los servicios pueden integrar nuevas funcionalidades sin cambiar lógica de negocio
+✅ **Sin acoplamiento**: La integración con DIAN no afecta el funcionamiento interno
+✅ **Testing facilitado**: Se pueden mockear los clients fácilmente
+✅ **Despliegue gradual**: Se puede activar con variables de entorno
+
+---
+
 **Versión**: 1.0 
 **Última actualización**: 2025
