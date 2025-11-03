@@ -1,0 +1,24 @@
+development:
+  clients:
+    default:
+      database: <%= ENV.fetch("MONGO_DATABASE") { "audit_service_development" } %>
+      hosts:
+        - <%= ENV.fetch("MONGO_HOST") { "mongodb" } %>:<%= ENV.fetch("MONGO_PORT") { "27017" } %>
+      options:
+        server_selection_timeout: 5
+        max_pool_size: 5
+
+test:
+  clients:
+    default:
+      database: audit_service_test
+      hosts:
+        - mongodb:27017
+
+production:
+  clients:
+    default:
+      database: audit_service_production
+      hosts:
+        - mongodb:27017
+

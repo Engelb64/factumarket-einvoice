@@ -124,3 +124,30 @@ Thumbs.db
 
 # Docker
 .dockerignore
+
+# Ignore bin directories (scripts ejecutables - Rails los genera)
+**/bin/*
+!**/bin/.keep
+!**/bin/docker-entrypoint
+
+# Ignore public compiled files
+**/public/404.html
+**/public/422.html
+**/public/500.html
+**/public/406-unsupported-browser.html
+
+# Ignore .ruby-version (puede variar)
+**/.ruby-version
+
+# Ignore .github workflows (opcional - descomentar si no quieres incluirlos)
+# **/.github/
+
+# Ignore lib directories (generados automáticamente)
+**/lib/assets/
+**/lib/tasks/.rake_tasks
+
+# Ignore db seeds backup
+**/db/seeds.rb.backup
+
+# Ignore .keep files (Rails uses these to keep empty directories, but not needed in repo)
+**/.keep
