@@ -47,6 +47,7 @@ services:
       POSTGRES_PASSWORD: postgres123
       DATABASE_URL: postgresql://postgres:postgres123@postgres:5432/invoice_service_development
       CLIENT_SERVICE_URL: http://client-service:3001
+      AUDIT_SERVICE_URL: http://audit-service:3003
       RAILS_ENV: development
       RAILS_LOG_TO_STDOUT: "true"
     stdin_open: true

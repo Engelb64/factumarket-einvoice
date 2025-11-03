@@ -1,0 +1,19 @@
+# Database configuration dummy - No se usa ActiveRecord, solo Mongoid
+# Este archivo existe solo para evitar errores de Rails, pero Mongoid maneja toda la persistencia
+default: &default
+  adapter: sqlite3
+  pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
+  timeout: 5000
+
+development:
+  <<: *default
+  database: storage/development.sqlite3
+
+test:
+  <<: *default
+  database: storage/test.sqlite3
+
+production:
+  <<: *default
+  database: storage/production.sqlite3
+

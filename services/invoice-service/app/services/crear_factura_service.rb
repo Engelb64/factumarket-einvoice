@@ -1,6 +1,7 @@
 class CrearFacturaService
-  def initialize(client_service_client: nil)
+  def initialize(client_service_client: nil, audit_service_client: nil)
     @client_service_client = client_service_client || ClientServiceClient.new
+    @audit_service_client = audit_service_client || AuditServiceClient.new
   end
 
   def ejecutar(params)
@@ -28,6 +29,20 @@ class CrearFacturaService
         factura.calcular_totales
         factura.save!
       end
+
+      # Registrar evento de auditoría
+      @audit_service_client.registrar_evento(
+        'FacturaCreada',
+        'invoice-service',
+        'Factura',
+        factura.id,
+        {
+          cliente_id: factura.cliente_id,
+          estado: factura.estado,
+          total: factura.total.to_s,
+          items_count: factura.items_factura.count
+        }
+      )
 
       factura
     else
