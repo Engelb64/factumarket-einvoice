@@ -39,33 +39,40 @@ clientes_data = [
   }
 ]
 
-clientes_creados = 0
-clientes_existentes = 0
+conexion = ActiveRecord::Base.connection
+creados = 0
+existentes = 0
 
-clientes_data.each do |cliente_attrs|
+clientes_data.each do |c|
+  sql = <<~SQL
+    INSERT INTO clientes (nit, nombre, email, telefono, direccion, activo, created_at, updated_at)
+    VALUES ($$#{c[:nit]}$$, $$#{c[:nombre]}$$, $$#{c[:email]}$$, $$#{c[:telefono]}$$, $$#{c[:direccion]}$$, #{c[:activo] ? 'TRUE' : 'FALSE'}, NOW(), NOW())
+    ON CONFLICT (nit) DO NOTHING;
+  SQL
+
   begin
-    cliente = Cliente.find_or_initialize_by(nit: cliente_attrs[:nit])
-    
-    if cliente.new_record?
-      cliente.assign_attributes(cliente_attrs)
-      if cliente.save
-        clientes_creados += 1
-        puts "  ✅ Cliente creado: #{cliente.nombre} (NIT: #{cliente.nit})"
+    resultado = conexion.execute(sql)
+    # Para saber si insertó, consultamos por NIT
+    inserted = conexion.exec_query("SELECT id FROM clientes WHERE nit = $1", "SQL", [[nil, c[:nit]]]).rows.any?
+    if inserted
+      # Si ya existía, no contamos como creado
+      if resultado.cmd_tuples.to_i > 0
+        creados += 1
+        puts "  ✅ Cliente insertado: #{c[:nombre]} (NIT: #{c[:nit]})"
       else
-        puts "  ❌ Error creando cliente #{cliente_attrs[:nombre]}: #{cliente.errors.full_messages.join(', ')}"
+        existentes += 1
+        puts "  ⏭️  Cliente ya existía: #{c[:nombre]} (NIT: #{c[:nit]})"
       end
-    else
-      clientes_existentes += 1
-      puts "  ⏭️  Cliente ya existe: #{cliente.nombre} (NIT: #{cliente.nit})"
     end
   rescue => e
-    puts "  ❌ Excepción creando cliente #{cliente_attrs[:nombre]}: #{e.message}"
-    puts "     #{e.backtrace.first(3).join("\n     ")}" if Rails.env.development?
+    puts "  ❌ Error insertando cliente #{c[:nombre]} (NIT: #{c[:nit]}): #{e.message}"
   end
 end
 
+total = conexion.exec_query("SELECT COUNT(*) AS total FROM clientes").rows.first.first
+
 puts "\n📊 Resumen:"
-puts "  - Clientes creados: #{clientes_creados}"
-puts "  - Clientes existentes: #{clientes_existentes}"
-puts "  - Total en base de datos: #{Cliente.count}"
+puts "  - Clientes creados: #{creados}"
+puts "  - Clientes existentes: #{existentes}"
+puts "  - Total en base de datos: #{total}"
 puts "\n✅ Seeds completados!"
