@@ -92,6 +92,20 @@ docker-compose up audit-service postgres mongodb
 
 **Nota**: Invoice Service depende de Client Service y Audit Service para funcionar completamente.
 
+### 2.1. Cargar datos de ejemplo (Opcional)
+
+Si deseas tener datos de ejemplo en la base de datos para probar el sistema rápidamente, puedes ejecutar los seeds:
+
+```bash
+# 1. Primero, cargar clientes de ejemplo
+docker-compose exec client-service bash -c "cd services/client-service && rails db:seed"
+
+# 2. Luego, cargar facturas de ejemplo (requiere clientes)
+docker-compose exec invoice-service bash -c "cd services/invoice-service && rails db:seed"
+```
+
+**Nota**: Los seeds son completamente opcionales. El sistema funciona perfectamente sin ellos.
+
 **Nota**: La primera vez puede tardar varios minutos mientras:
 - Descarga las imágenes base (PostgreSQL, MongoDB, Ruby)
 - Construye las imágenes de los microservicios
@@ -310,6 +324,12 @@ docker-compose exec audit-service bash -c "cd services/audit-service && rails db
 
 # Crear base de datos (si es necesario)
 docker-compose exec audit-service bash -c "cd services/audit-service && rails db:create db:migrate"
+
+# Cargar datos de ejemplo (seeds) - OPCIONAL
+docker-compose exec client-service bash -c "cd services/client-service && rails db:seed"
+docker-compose exec invoice-service bash -c "cd services/invoice-service && rails db:seed"
+# Nota: Los seeds de invoice-service requieren que client-service tenga clientes
+# Los seeds de audit-service son informativos (los eventos se generan automáticamente)
 
 # Instalar nuevas gemas en un microservicio
 docker-compose exec client-service bash -c "cd services/client-service && bundle install"
