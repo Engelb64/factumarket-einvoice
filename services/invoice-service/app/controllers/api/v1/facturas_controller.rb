@@ -5,7 +5,24 @@ module Api
 
       def index
         @facturas = Factura.includes(:items_factura).all
+        
+        # Filtrar por rango de fechas si se proporcionan
+        if params[:fechaInicio].present?
+          fecha_inicio = Date.parse(params[:fechaInicio])
+          @facturas = @facturas.where('fecha_emision >= ?', fecha_inicio)
+        end
+        
+        if params[:fechaFin].present?
+          fecha_fin = Date.parse(params[:fechaFin])
+          @facturas = @facturas.where('fecha_emision <= ?', fecha_fin)
+        end
+        
         render json: @facturas, include: :items_factura
+      rescue ArgumentError => e
+        render json: { 
+          error: 'Formato de fecha inválido. Use formato YYYY-MM-DD (ej: 2025-01-15)',
+          code: 'INVALID_DATE_FORMAT'
+        }, status: :bad_request
       end
 
       def show

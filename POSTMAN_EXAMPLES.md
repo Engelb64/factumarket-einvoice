@@ -198,9 +198,18 @@ Content-Type: application/json
 **Método:** `GET`  
 **URL:** `{{base_url_invoice}}/api/v1/facturas`
 
+**Query Parameters (Opcionales):**
+- `fechaInicio`: Filtrar desde fecha (formato: `2025-01-15`)
+- `fechaFin`: Filtrar hasta fecha (formato: `2025-01-31`)
+
 **Headers:**
 ```
 Content-Type: application/json
+```
+
+**Ejemplo con Filtros:**
+```
+GET {{base_url_invoice}}/api/v1/facturas?fechaInicio=2025-01-15&fechaFin=2025-01-31
 ```
 
 **Ejemplo de Respuesta:**

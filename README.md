@@ -519,7 +519,11 @@ curl -X POST http://localhost:3002/api/v1/facturas/1/emitir \
 
 **3. Listar facturas:**
 ```bash
+# Todas las facturas
 curl http://localhost:3002/api/v1/facturas
+
+# Filtrar por rango de fechas
+curl "http://localhost:3002/api/v1/facturas?fechaInicio=2025-01-15&fechaFin=2025-01-31"
 ```
 
 **4. Anular factura:**
