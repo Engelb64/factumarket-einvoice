@@ -43,6 +43,7 @@ Content-Type: application/json
     "nombre": "Empresa ABC S.A.",
     "email": "contacto@abc.com",
     "telefono": "2222-3333",
+    "direccion": "Calle Principal 123, Ciudad",
     "activo": true,
     "created_at": "2025-01-15T10:00:00.000Z",
     "updated_at": "2025-01-15T10:00:00.000Z"
@@ -70,6 +71,7 @@ Content-Type: application/json
   "nombre": "Empresa ABC S.A.",
   "email": "contacto@abc.com",
   "telefono": "2222-3333",
+  "direccion": "Calle Principal 123, Ciudad",
   "activo": true,
   "created_at": "2025-01-15T10:00:00.000Z",
   "updated_at": "2025-01-15T10:00:00.000Z"
@@ -95,7 +97,8 @@ Content-Type: application/json
     "nit": "12345678-9",
     "nombre": "Empresa ABC S.A.",
     "email": "contacto@abc.com",
-    "telefono": "2222-3333"
+    "telefono": "2222-3333",
+    "direccion": "Calle Principal 123, Ciudad"
   }
 }
 ```
@@ -108,6 +111,7 @@ Content-Type: application/json
   "nombre": "Empresa ABC S.A.",
   "email": "contacto@abc.com",
   "telefono": "2222-3333",
+  "direccion": "Calle Principal 123, Ciudad",
   "activo": true,
   "created_at": "2025-01-15T10:00:00.000Z",
   "updated_at": "2025-01-15T10:00:00.000Z"
@@ -143,7 +147,8 @@ Content-Type: application/json
   "cliente": {
     "nombre": "Empresa ABC Actualizada S.A.",
     "email": "nuevo-email@abc.com",
-    "telefono": "9999-8888"
+    "telefono": "9999-8888",
+    "direccion": "Nueva Dirección 456, Ciudad"
   }
 }
 ```

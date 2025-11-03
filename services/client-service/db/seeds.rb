@@ -10,6 +10,7 @@ clientes_data = [
     nombre: "Empresa ABC S.A.",
     email: "contacto@abc.com",
     telefono: "2222-3333",
+    direccion: "Calle Principal 123, Oficina 456, Ciudad",
     activo: true
   },
   {
@@ -17,6 +18,7 @@ clientes_data = [
     nombre: "Comercial XYZ Ltda.",
     email: "ventas@xyz.com",
     telefono: "4444-5555",
+    direccion: "Avenida Central 789, Sector Norte",
     activo: true
   },
   {
@@ -24,6 +26,7 @@ clientes_data = [
     nombre: "Servicios Integrales S.A.S.",
     email: "info@serviciosintegrales.com",
     telefono: "6666-7777",
+    direccion: "Zona Industrial, Edificio 2, Piso 3",
     activo: true
   },
   {
@@ -31,6 +34,7 @@ clientes_data = [
     nombre: "Distribuidora del Norte",
     email: "ventas@distribuidoranorte.com",
     telefono: "8888-9999",
+    direccion: "Carretera Norte Km 12.5, Bodega 5",
     activo: false
   }
 ]

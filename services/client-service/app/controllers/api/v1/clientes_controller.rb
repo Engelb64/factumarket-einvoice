@@ -49,7 +49,7 @@ module Api
       end
 
       def cliente_params
-        params.require(:cliente).permit(:nit, :nombre, :email, :telefono, :activo)
+        params.require(:cliente).permit(:nit, :nombre, :email, :telefono, :direccion, :activo)
       end
     end
   end

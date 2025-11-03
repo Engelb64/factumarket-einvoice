@@ -3,6 +3,7 @@ class Cliente < ApplicationRecord
   validates :nombre, presence: true, length: { minimum: 3, maximum: 200 }
   validates :email, format: { with: URI::MailTo::EMAIL_REGEXP }, allow_blank: true, length: { maximum: 255 }
   validates :telefono, length: { maximum: 20 }, allow_blank: true
+  validates :direccion, length: { maximum: 500 }, allow_blank: true
   validate :nit_formato_valido
 
   scope :activos, -> { where(activo: true) }

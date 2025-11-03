@@ -428,7 +428,8 @@ curl -X POST http://localhost:3001/api/v1/clientes \
       "nit": "12345678-9",
       "nombre": "Empresa ABC S.A.",
       "email": "contacto@abc.com",
-      "telefono": "2222-3333"
+      "telefono": "2222-3333",
+      "direccion": "Calle Principal 123, Ciudad"
     }
   }'
 ```
@@ -441,6 +442,7 @@ curl -X POST http://localhost:3001/api/v1/clientes \
   "nombre": "Empresa ABC S.A.",
   "email": "contacto@abc.com",
   "telefono": "2222-3333",
+  "direccion": "Calle Principal 123, Ciudad",
   "activo": true
 }
 ```

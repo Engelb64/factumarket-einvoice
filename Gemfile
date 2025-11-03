@@ -11,7 +11,7 @@ gem "pg", "~> 1.5"
 # ORACLE (COMENTADO - Registro histórico de intento inicial)
 # ============================================================================
 # Se intentó usar Oracle Database inicialmente, pero debido a problemas con
-# la descarga de Oracle Instant Client (bloqueado en Venezuela), se cambió
+# la descarga de Oracle Instant Client, se cambió
 # a PostgreSQL. Se mantiene esta sección como registro histórico.
 #
 # Base de datos Oracle

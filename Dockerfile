@@ -21,7 +21,7 @@ RUN apt-get update -qq && \
 # INSTALACIÓN ORACLE INSTANT CLIENT (COMENTADO - Registro histórico)
 # ============================================================================
 # Se intentó usar Oracle Database inicialmente, pero debido a problemas con
-# la descarga de Oracle Instant Client (bloqueado en Venezuela), se cambió
+# la descarga de Oracle Instant Client, se cambió
 # a PostgreSQL. Se mantiene esta sección como registro histórico.
 #
 # Instala Oracle Instant Client (intentará descargar, si falla se instalará manualmente después)
