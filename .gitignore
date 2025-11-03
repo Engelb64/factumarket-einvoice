@@ -54,3 +54,73 @@ Thumbs.db
 
 # Ignore Oracle client files (si se descargan localmente)
 /oracle_client/
+
+# ============================================================================
+# Rails Multi-Service Project Specific
+# ============================================================================
+
+# Ignore logs in all services
+**/log/*
+!**/log/.keep
+**/*.log
+
+# Ignore tmp directories in all services
+**/tmp/*
+!**/tmp/.keep
+!**/tmp/pids/.keep
+!**/tmp/cache/.keep
+!**/tmp/storage/.keep
+
+# Ignore storage directories
+**/storage/*
+!**/storage/.keep
+
+# Ignore vendor directories (gems)
+**/vendor/
+
+# Ignore credentials and master keys in all services
+**/config/master.key
+**/config/credentials.yml.enc
+
+# Ignore database files (SQLite)
+*.sqlite3
+*.sqlite3-*
+**/db/*.sqlite3
+**/db/*.sqlite3-*
+
+# Ignore Gemfile.lock (puede variar entre entornos)
+# Descomentar si quieres ignorar Gemfile.lock:
+# **/Gemfile.lock
+
+# Ignore PID files
+**/*.pid
+
+# Ignore restart.txt
+**/tmp/restart.txt
+
+# Ignore cache directories
+**/tmp/cache/*
+!**/tmp/cache/.keep
+
+# Ignore sockets
+**/tmp/sockets/*
+
+# Ignore public assets compilation
+**/public/assets
+**/public/packs
+**/public/packs-test
+
+# Ignore coverage reports
+**/coverage/
+
+# Ignore .byebug_history
+**/.byebug_history
+
+# Ignore Rails generated files (keep structure, ignore generated content)
+**/app/assets/builds/*
+!**/app/assets/builds/.keep
+**/app/javascript/builds/*
+!**/app/javascript/builds/.keep
+
+# Docker
+.dockerignore
