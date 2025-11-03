@@ -8,13 +8,12 @@ Rails.application.routes.draw do
   # API Routes
   namespace :api do
     namespace :v1 do
-      resources :auditoria do
-        collection do
-          get :eventos, to: 'eventos#index'
-          post :eventos, to: 'eventos#create'
-        end
-        member do
-          get :eventos, to: 'eventos#show'
+      scope path: 'auditoria' do
+        resources :eventos, only: [:index, :show, :create], controller: 'eventos'
+        resources :reportes, only: [:index], controller: 'reportes' do
+          collection do
+            get :resumen
+          end
         end
       end
     end

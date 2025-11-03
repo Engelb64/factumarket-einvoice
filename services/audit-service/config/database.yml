@@ -1,19 +1,27 @@
-# Database configuration dummy - No se usa ActiveRecord, solo Mongoid
-# Este archivo existe solo para evitar errores de Rails, pero Mongoid maneja toda la persistencia
+# PostgreSQL configuration for reports/analytics (complementary to MongoDB)
 default: &default
-  adapter: sqlite3
+  adapter: postgresql
+  encoding: unicode
   pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
   timeout: 5000
 
 development:
   <<: *default
-  database: storage/development.sqlite3
+  database: <%= ENV.fetch("POSTGRES_DATABASE") { "audit_service_reports_development" } %>
+  username: <%= ENV.fetch("POSTGRES_USER") { "postgres" } %>
+  password: <%= ENV.fetch("POSTGRES_PASSWORD") { "postgres123" } %>
+  host: <%= ENV.fetch("POSTGRES_HOST") { "postgres" } %>
+  port: <%= ENV.fetch("POSTGRES_PORT") { "5432" } %>
 
 test:
   <<: *default
-  database: storage/test.sqlite3
+  database: audit_service_reports_test
 
 production:
   <<: *default
-  database: storage/production.sqlite3
+  database: <%= ENV.fetch("POSTGRES_DATABASE") { "audit_service_reports_production" } %>
+  username: <%= ENV.fetch("POSTGRES_USER") { "postgres" } %>
+  password: <%= ENV.fetch("POSTGRES_PASSWORD") { "postgres123" } %>
+  host: <%= ENV.fetch("POSTGRES_HOST") { "postgres" } %>
+  port: <%= ENV.fetch("POSTGRES_PORT") { "5432" } %>
 

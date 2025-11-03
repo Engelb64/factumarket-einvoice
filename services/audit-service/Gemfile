@@ -4,8 +4,8 @@ source "https://rubygems.org"
 gem "rails", "~> 7.2.3"
 # Use MongoDB with Mongoid
 gem "mongoid", "~> 8.0"
-# SQLite3 dummy - necesario para que Rails no falle al cargar ActiveRecord (no se usa realmente)
-gem "sqlite3", ">= 1.4", group: [:development, :test]
+# PostgreSQL for reports/analytics
+gem "pg", "~> 1.5"
 # Use the Puma web server [https://github.com/puma/puma]
 gem "puma", ">= 5.0"
 # Build JSON APIs with ease [https://github.com/rails/jbuilder]

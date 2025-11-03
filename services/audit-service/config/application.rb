@@ -4,8 +4,8 @@ require "rails"
 # Pick the frameworks you want:
 require "active_model/railtie"
 require "active_job/railtie"
-# require "active_record/railtie"  # Not using ActiveRecord, using Mongoid instead
-# require "active_storage/engine"  # Not needed for API only with MongoDB
+require "active_record/railtie"  # Using ActiveRecord for PostgreSQL reports
+# require "active_storage/engine"  # Not needed for API only
 require "action_controller/railtie"
 require "action_mailer/railtie"
 require "action_mailbox/engine"
