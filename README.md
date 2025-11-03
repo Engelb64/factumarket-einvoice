@@ -1,6 +1,6 @@
 # FactuMarket - Sistema de Facturación Electrónica
 
-Sistema moderno de facturación electrónica desarrollado para **FactuMarket S.A.** utilizando Ruby on Rails con arquitectura multi-base de datos.
+Sistema moderno de facturación electrónica desarrollado para **Prueba tecnica Double V Partners** utilizando Ruby on Rails con arquitectura multi-base de datos.
 
 ## 🎯 Objetivo del Proyecto
 
@@ -11,11 +11,44 @@ Modernizar el sistema de facturación electrónica de FactuMarket S.A., actualme
 
 ## 🏗️ Arquitectura
 
-El sistema utiliza dos bases de datos:
-- **PostgreSQL**: Base de datos relacional para datos transaccionales y auditoría
-- **MongoDB**: Base de datos NoSQL para documentos y logs de facturación
+El sistema utiliza una **arquitectura de microservicios** basada en Ruby on Rails 7.2, donde cada microservicio es independiente y se comunica vía HTTP REST:
 
-> **Nota histórica**: Inicialmente se intentó usar Oracle Database, pero debido a problemas con la descarga de Oracle Instant Client (bloqueado en Venezuela), se cambió a PostgreSQL. Las referencias a Oracle se mantienen comentadas en el código como registro histórico.
+### Microservicios
+
+1. **Client Service** (Puerto 3001)
+   - Gestión de clientes (CRUD)
+   - Base de datos: PostgreSQL (`client_service_development`)
+   - Tabla: `clientes`
+
+2. **Invoice Service** (Puerto 3002)
+   - Gestión de facturas (crear, emitir, anular)
+   - Validación de reglas de negocio
+   - Base de datos: PostgreSQL (`invoice_service_development`)
+   - Tablas: `facturas`, `items_factura`
+   - Comunicación: Se comunica con Client Service y Audit Service
+
+3. **Audit Service** (Puerto 3003)
+   - Registro de eventos de auditoría
+   - Reportes y métricas agregadas
+   - Bases de datos:
+     - MongoDB (`audit_service_development`) - Eventos raw
+     - PostgreSQL (`audit_service_reports_development`) - Métricas agregadas
+   - Colección/Tabla: `eventos_auditoria` / `metricas_auditoria`
+
+### Bases de Datos
+
+- **PostgreSQL 16**: Base de datos relacional multi-schema para datos transaccionales
+  - Una base de datos por microservicio para datos transaccionales
+  - Base adicional en Audit Service para reportes agregados
+- **MongoDB 7.0**: Base de datos NoSQL para eventos de auditoría (raw events)
+
+### 📐 Diagrama de Arquitectura
+
+Para una vista detallada de la arquitectura del sistema, puedes consultar el diagrama interactivo en Lucidchart:
+
+🔗 [Ver Diagrama de Arquitectura en Lucidchart](https://lucid.app/lucidchart/9eb7cb4c-87ee-4bc0-a473-edaee5888e47/edit?viewport_loc=3777%2C-2018%2C1970%2C1079%2C0_0&invitationId=inv_2f7e9ddf-dd90-4549-847c-df6ce3a729a2)
+
+> **Nota histórica**: Inicialmente se intentó usar Oracle Database, pero debido a problemas con la descarga de Oracle Instant Client, se cambió a PostgreSQL. Las referencias a Oracle se mantienen comentadas en el código como registro histórico.
 
 ## 📋 Requisitos Previos
 
@@ -31,112 +64,137 @@ git clone <url-del-repositorio>
 cd factumarket-einvoice
 ```
 
-### 2. Configurar archivos de base de datos
-
-Si los archivos de configuración no existen, cópialos desde los ejemplos:
-
-```bash
-# Configurar PostgreSQL
-cp config/database.yml.example config/database.yml
-
-# Configurar MongoDB
-cp config/mongoid.yml.example config/mongoid.yml
-```
-
-**Nota**: Si ya existen estos archivos, puedes omitir este paso.
-
-### 3. Levantar los servicios con Docker Compose
+### 2. Levantar todos los microservicios con Docker Compose
 
 ```bash
 docker-compose up --build
 ```
 
 Este comando:
-- Construye la imagen de la aplicación Rails
-- Inicia PostgreSQL Database
+- Construye las imágenes de los microservicios Rails
+- Inicia PostgreSQL Database (multi-database)
 - Inicia MongoDB
-- Inicia la aplicación Rails
+- Inicia los 3 microservicios: Client Service, Invoice Service, Audit Service
 
 **Nota**: La primera vez puede tardar varios minutos mientras:
 - Descarga las imágenes base (PostgreSQL, MongoDB, Ruby)
-- Construye la imagen de la aplicación
-- Instala todas las gemas de Ruby
+- Construye las imágenes de los microservicios
+- Instala todas las gemas de Ruby en cada servicio
 
-**Espera hasta ver**: "Listening on http://0.0.0.0:3000" en los logs.
+**Espera hasta ver en los logs**:
+- `Client Service`: "Listening on http://0.0.0.0:3001"
+- `Invoice Service`: "Listening on http://0.0.0.0:3002"
+- `Audit Service`: "Listening on http://0.0.0.0:3003"
 
-### 4. Acceder a la aplicación
+### 3. Verificar que todos los servicios están corriendo
 
-Una vez que todos los servicios estén corriendo, accede a:
+```bash
+docker-compose ps
+```
 
-- **Rails App**: http://localhost:3000
-- **PostgreSQL Database**: 
+Deberías ver los siguientes servicios con estado "Up (healthy)":
+- `client-service` (Puerto 3001)
+- `invoice-service` (Puerto 3002)
+- `audit-service` (Puerto 3003)
+- `postgres` (Puerto 5432)
+- `mongodb` (Puerto 27017)
+
+### 4. Acceder a los microservicios
+
+Una vez que todos los servicios estén corriendo, puedes acceder a:
+
+**Microservicios:**
+- **Client Service**: http://localhost:3001
+  - API: http://localhost:3001/api/v1/clientes
+- **Invoice Service**: http://localhost:3002
+  - API: http://localhost:3002/api/v1/facturas
+- **Audit Service**: http://localhost:3003
+  - API: http://localhost:3003/api/v1/auditoria/eventos
+  - Reportes: http://localhost:3003/api/v1/auditoria/reportes
+
+**Bases de Datos:**
+- **PostgreSQL**: 
   - Host: `localhost`
   - Puerto: `5432`
   - Usuario: `postgres`
   - Contraseña: `postgres123`
-  - Database: `factumarket_development`
+  - Bases de datos:
+    - `client_service_development`
+    - `invoice_service_development`
+    - `audit_service_reports_development`
 - **MongoDB**: 
   - Host: `localhost`
   - Puerto: `27017`
-  - Database: `my_rails_db`
+  - Database: `audit_service_development`
 
-## ⚙️ Configuración de Bases de Datos
+## ⚙️ Configuración de Microservicios
 
-### PostgreSQL Database
+### Variables de Entorno
 
-La configuración se encuentra en `config/database.yml`.
+Cada microservicio tiene sus propias variables de entorno configuradas en `docker-compose.yml`:
 
-Las credenciales se pueden configurar mediante variables de entorno en `docker-compose.yml` o directamente en el archivo. Por defecto:
+**Client Service:**
+- `POSTGRES_*`: Configuración de PostgreSQL
+- `DATABASE_URL`: URL de conexión a PostgreSQL
+- `RAILS_ENV`: development
 
-```yaml
-username: postgres
-password: postgres123
-host: postgres
-port: 5432
-database: factumarket_development
-```
+**Invoice Service:**
+- `POSTGRES_*`: Configuración de PostgreSQL
+- `DATABASE_URL`: URL de conexión a PostgreSQL
+- `CLIENT_SERVICE_URL`: http://client-service:3001 (para comunicación con Client Service)
+- `AUDIT_SERVICE_URL`: http://audit-service:3003 (para comunicación con Audit Service)
+- `RAILS_ENV`: development
 
-**Nota**: Las credenciales están configuradas en `docker-compose.yml` y se pueden modificar allí.
+**Audit Service:**
+- `MONGO_*`: Configuración de MongoDB (para eventos raw)
+- `POSTGRES_*`: Configuración de PostgreSQL (para reportes agregados)
+- `RAILS_ENV`: development
 
-### MongoDB
-
-La configuración se encuentra en `config/mongoid.yml` (si no existe, cópialo desde `config/mongoid.yml.example`).
-
-Por defecto se conecta a:
-
-```yaml
-hosts:
-  - mongodb:27017
-database: my_rails_db
-```
-
-**Nota**: Si `config/mongoid.yml` no existe, cópialo desde el ejemplo:
-```bash
-cp config/mongoid.yml.example config/mongoid.yml
-```
-
-## 🔧 Variables de Entorno
-
-Las variables de entorno están configuradas en `docker-compose.yml`. Puedes modificarlas según tus necesidades:
-
-- `POSTGRES_HOST`, `POSTGRES_PORT`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DATABASE`
-- `MONGO_HOST`, `MONGO_PORT`, `MONGO_DATABASE`
-- `RAILS_ENV`, `RAILS_LOG_TO_STDOUT`
+**Nota**: Las credenciales y URLs están configuradas en `docker-compose.yml`. Para cambiar la configuración, modifica las variables de entorno en ese archivo.
 
 ## 📦 Estructura del Proyecto
 
 ```
 .
-├── app/                    # Código de la aplicación Rails
-│   ├── controllers/        # Controladores
-│   ├── models/             # Modelos (ActiveRecord para PostgreSQL, Mongoid para MongoDB)
-│   └── views/              # Vistas
-├── config/                 # Configuración
-│   ├── database.yml        # Configuración PostgreSQL (ActiveRecord)
-│   └── mongoid.yml         # Configuración MongoDB
-├── docker-compose.yml      # Configuración Docker Compose
-├── Dockerfile              # Imagen Docker de la aplicación
-└── Gemfile                 # Dependencias Ruby
+├── services/                    # Microservicios
+│   ├── client-service/          # Microservicio de Clientes (Puerto 3001)
+│   │   ├── app/
+│   │   │   ├── controllers/     # Api::V1::ClientesController
+│   │   │   ├── models/          # Cliente
+│   │   │   └── exceptions/      # BusinessError
+│   │   ├── config/
+│   │   │   └── database.yml     # PostgreSQL config
+│   │   └── db/
+│   │       └── migrate/         # Migraciones
+│   │
+│   ├── invoice-service/         # Microservicio de Facturas (Puerto 3002)
+│   │   ├── app/
+│   │   │   ├── controllers/     # Api::V1::FacturasController
+│   │   │   ├── models/          # Factura, ItemFactura
+│   │   │   ├── services/        # CrearFacturaService, EmitirFacturaService, etc.
+│   │   │   ├── clients/         # ClientServiceClient, AuditServiceClient
+│   │   │   └── exceptions/      # BusinessError
+│   │   ├── config/
+│   │   │   └── database.yml     # PostgreSQL config
+│   │   └── db/
+│   │       └── migrate/         # Migraciones
+│   │
+│   └── audit-service/           # Microservicio de Auditoría (Puerto 3003)
+│       ├── app/
+│       │   ├── controllers/     # Api::V1::EventosController, ReportesController
+│       │   ├── models/          # EventoAuditoria (Mongoid), ReporteMetricas (ActiveRecord)
+│       │   └── services/        # AgregarMetricasService
+│       ├── config/
+│       │   ├── database.yml     # PostgreSQL config (para reportes)
+│       │   └── mongoid.yml      # MongoDB config (para eventos)
+│       └── db/
+│           └── migrate/         # Migraciones PostgreSQL
+│
+├── docker-compose.yml           # Configuración de todos los servicios
+├── Dockerfile                   # Imagen Docker compartida
+├── ARCHITECTURE.md              # Documentación de arquitectura
+├── ARCHITECTURE_DIAGRAM.md      # Diagramas detallados
+└── README.md                    # Este archivo
 ```
 
 ## 🛠️ Comandos Útiles
@@ -147,41 +205,55 @@ Las variables de entorno están configuradas en `docker-compose.yml`. Puedes mod
 # Todos los servicios
 docker-compose logs -f
 
-# Solo la aplicación Rails
-docker-compose logs -f app
+# Logs de un microservicio específico
+docker-compose logs -f client-service
+docker-compose logs -f invoice-service
+docker-compose logs -f audit-service
 
-# Solo PostgreSQL
+# Logs de bases de datos
 docker-compose logs -f postgres
-
-# Solo MongoDB
 docker-compose logs -f mongodb
 ```
 
-### Ejecutar comandos Rails
+### Ejecutar comandos Rails en microservicios
 
 ```bash
-# Consola de Rails
-docker-compose exec app rails console
+# Consola de Rails en Client Service
+docker-compose exec client-service bash -c "cd services/client-service && rails console"
 
-# Generar un modelo
-docker-compose exec app rails generate model NombreModelo
+# Consola de Rails en Invoice Service
+docker-compose exec invoice-service bash -c "cd services/invoice-service && rails console"
 
-# Ejecutar migraciones (PostgreSQL)
-docker-compose exec app rails db:migrate
+# Consola de Rails en Audit Service
+docker-compose exec audit-service bash -c "cd services/audit-service && rails console"
 
-# Instalar nuevas gemas
-docker-compose exec app bundle install
-docker-compose restart app
+# Ejecutar migraciones en un microservicio específico
+docker-compose exec client-service bash -c "cd services/client-service && rails db:migrate"
+docker-compose exec invoice-service bash -c "cd services/invoice-service && rails db:migrate"
+docker-compose exec audit-service bash -c "cd services/audit-service && rails db:migrate"
+
+# Crear base de datos (si es necesario)
+docker-compose exec audit-service bash -c "cd services/audit-service && rails db:create db:migrate"
+
+# Instalar nuevas gemas en un microservicio
+docker-compose exec client-service bash -c "cd services/client-service && bundle install"
+docker-compose restart client-service
 ```
 
 ### Acceder a las bases de datos
 
 ```bash
 # MongoDB shell
-docker-compose exec mongodb mongosh my_rails_db
+docker-compose exec mongodb mongosh audit_service_development
 
-# PostgreSQL psql
-docker-compose exec postgres psql -U postgres -d factumarket_development
+# PostgreSQL psql - Client Service
+docker-compose exec postgres psql -U postgres -d client_service_development
+
+# PostgreSQL psql - Invoice Service
+docker-compose exec postgres psql -U postgres -d invoice_service_development
+
+# PostgreSQL psql - Audit Service (Reportes)
+docker-compose exec postgres psql -U postgres -d audit_service_reports_development
 ```
 
 ### Detener y reiniciar servicios
@@ -190,8 +262,16 @@ docker-compose exec postgres psql -U postgres -d factumarket_development
 # Detener todos los servicios
 docker-compose stop
 
-# Reiniciar todos los servicios
+# Iniciar todos los servicios
 docker-compose start
+
+# Reiniciar todos los servicios
+docker-compose restart
+
+# Reiniciar un microservicio específico
+docker-compose restart client-service
+docker-compose restart invoice-service
+docker-compose restart audit-service
 
 # Detener y eliminar contenedores (NO elimina volúmenes)
 docker-compose down
@@ -199,40 +279,99 @@ docker-compose down
 # Detener y eliminar TODO incluyendo volúmenes (¡CUIDADO! Borra los datos)
 docker-compose down -v
 
-# Reiniciar solo la aplicación Rails
-docker-compose restart app
+# Ver estado de los servicios
+docker-compose ps
 ```
 
-## 📊 Uso de las Bases de Datos
+### Health Checks
 
-### Modelos con ActiveRecord (PostgreSQL)
+```bash
+# Verificar health de todos los servicios
+docker-compose ps
 
-```ruby
-# app/models/producto.rb
-class Producto < ApplicationRecord
-  # Se conecta automáticamente a PostgreSQL usando config/database.yml
-end
+# Verificar si un servicio específico está healthy
+docker-compose ps client-service
+docker-compose ps invoice-service
+docker-compose ps audit-service
 ```
 
-### Modelos con Mongoid (MongoDB)
+## 📊 Comunicación entre Microservicios
+
+Los microservicios se comunican mediante HTTP REST:
+
+### Invoice Service → Client Service
 
 ```ruby
-# app/models/usuario.rb
-class Usuario
-  include Mongoid::Document
-  include Mongoid::Timestamps
-  
-  field :nombre, type: String
-  field :email, type: String
-end
+# En Invoice Service
+client = ClientServiceClient.new
+cliente = client.obtener_cliente(cliente_id)
+```
+
+**Endpoint utilizado**: `GET http://client-service:3001/api/v1/clientes/:id`
+
+### Invoice Service → Audit Service
+
+```ruby
+# En Invoice Service
+audit = AuditServiceClient.new
+audit.registrar_evento('FacturaCreada', 'invoice-service', 'Factura', factura_id, datos)
+```
+
+**Endpoint utilizado**: `POST http://audit-service:3003/api/v1/auditoria/eventos`
+
+### Ejemplos de uso de la API
+
+**Crear un cliente:**
+```bash
+curl -X POST http://localhost:3001/api/v1/clientes \
+  -H "Content-Type: application/json" \
+  -d '{
+    "cliente": {
+      "nit": "12345678-9",
+      "nombre": "Empresa ABC S.A.",
+      "email": "contacto@abc.com"
+    }
+  }'
+```
+
+**Crear una factura:**
+```bash
+curl -X POST http://localhost:3002/api/v1/facturas \
+  -H "Content-Type: application/json" \
+  -d '{
+    "factura": {
+      "cliente_id": 1,
+      "items_factura": [
+        {
+          "descripcion": "Producto A",
+          "cantidad": 2,
+          "precio_unitario": 100.00,
+          "impuesto_porcentaje": 13
+        }
+      ]
+    }
+  }'
+```
+
+**Consultar eventos de auditoría:**
+```bash
+curl http://localhost:3003/api/v1/auditoria/eventos
+```
+
+**Consultar reportes:**
+```bash
+curl http://localhost:3003/api/v1/auditoria/reportes?desde=2024-01-15
 ```
 
 ## ⚠️ Notas Importantes
 
-1. **PostgreSQL** se inicializa rápidamente (10-20 segundos)
-2. Los health checks en `docker-compose.yml` esperan a que las bases de datos estén listas antes de iniciar Rails
-3. Los volúmenes Docker mantienen los datos persistidos entre reinicios
-4. Los cambios en código (controladores, modelos, vistas) se recargan automáticamente gracias al volumen montado
+1. **Orden de inicio**: Docker Compose espera a que PostgreSQL y MongoDB estén "healthy" antes de iniciar los microservicios
+2. **PostgreSQL** se inicializa rápidamente (10-20 segundos)
+3. **MongoDB** puede tardar un poco más (20-30 segundos en el primer inicio)
+4. Los volúmenes Docker mantienen los datos persistidos entre reinicios
+5. Los cambios en código se recargan automáticamente gracias al volumen montado (hot reload)
+6. Cada microservicio tiene su propia base de datos PostgreSQL para independencia
+7. El Audit Service usa ambas bases de datos: MongoDB para eventos raw y PostgreSQL para métricas agregadas
 
 ## 🔍 Troubleshooting
 
@@ -248,20 +387,34 @@ end
 - Verifica que el contenedor esté corriendo: `docker-compose ps mongodb`
 - Revisa los logs: `docker-compose logs mongodb`
 
-### La aplicación no arranca
+### Un microservicio no arranca
 
 - Verifica que PostgreSQL y MongoDB estén "healthy": `docker-compose ps`
-- Revisa los logs de la aplicación: `docker-compose logs app`
-- Verifica que las gemas estén instaladas: `docker-compose exec app bundle check`
-- Verifica la conexión a la base de datos: `docker-compose exec app rails db:version`
+- Revisa los logs del microservicio: `docker-compose logs -f client-service` (o el servicio que falle)
+- Verifica que las gemas estén instaladas:
+  ```bash
+  docker-compose exec client-service bash -c "cd services/client-service && bundle check"
+  ```
+- Verifica la conexión a la base de datos:
+  ```bash
+  docker-compose exec client-service bash -c "cd services/client-service && rails db:version"
+  ```
 
-### Puerto 3000 ya está en uso
+### Error de comunicación entre microservicios
 
-Cambia el puerto en `docker-compose.yml`:
+- Verifica que ambos microservicios estén corriendo: `docker-compose ps`
+- Verifica las variables de entorno en `docker-compose.yml`:
+  - `CLIENT_SERVICE_URL` en invoice-service debe ser: `http://client-service:3001`
+  - `AUDIT_SERVICE_URL` en invoice-service debe ser: `http://audit-service:3003`
+- Verifica que los servicios estén en la misma red Docker (por defecto se crean automáticamente)
+
+### Puerto ya está en uso
+
+Si algún puerto (3001, 3002, 3003, 5432, 27017) ya está en uso, cambia el mapeo en `docker-compose.yml`:
 
 ```yaml
 ports:
-  - "3001:3000"  # Cambia 3000 a 3001
+  - "3001:3001"  # Cambia el primer número (host) al puerto disponible
 ```
 
 ## 🔐 Seguridad
@@ -276,14 +429,35 @@ ports:
 
 ### Hot Reload
 
-Los cambios en controladores, modelos y vistas se recargan automáticamente. Solo necesitas reiniciar el servidor cuando:
+Los cambios en controladores, modelos y vistas se recargan automáticamente en todos los microservicios. Solo necesitas reiniciar cuando:
 
-- Agregas nuevas gemas al `Gemfile`
+- Agregas nuevas gemas al `Gemfile` de algún microservicio
 - Cambias archivos en `config/initializers/`
 - Modificas `config/database.yml` o `config/mongoid.yml`
 
 ```bash
-docker-compose restart app
+# Reiniciar un microservicio específico
+docker-compose restart client-service
+docker-compose restart invoice-service
+docker-compose restart audit-service
+
+# O reiniciar todos
+docker-compose restart
+```
+
+### Trabajar con un microservicio específico
+
+```bash
+# Acceder al shell del contenedor
+docker-compose exec client-service bash
+
+# Desde dentro del contenedor, navegar al microservicio
+cd services/client-service
+
+# Ejecutar comandos Rails
+rails console
+rails generate model NombreModelo
+rails db:migrate
 ```
 
 ## 🧪 Testing
@@ -295,6 +469,12 @@ docker-compose exec app rails test
 
 ## 📚 Documentación Adicional
 
+### Diagramas y Arquitectura
+- [Diagrama de Arquitectura Interactivo (Lucidchart)](https://lucid.app/lucidchart/9eb7cb4c-87ee-4bc0-a473-edaee5888e47/edit?viewport_loc=3777%2C-2018%2C1970%2C1079%2C0_0&invitationId=inv_2f7e9ddf-dd90-4549-847c-df6ce3a729a2)
+- `ARCHITECTURE.md` - Documentación completa de la arquitectura
+- `ARCHITECTURE_DIAGRAM.md` - Diagramas detallados en formato Mermaid
+
+### Tecnologías Utilizadas
 - [Ruby on Rails Guides](https://guides.rubyonrails.org/)
 - [Mongoid Documentation](https://docs.mongodb.com/mongoid/)
 - [PostgreSQL Documentation](https://www.postgresql.org/docs/)
@@ -304,8 +484,7 @@ docker-compose exec app rails test
 
 ## 📝 Nota Histórica sobre Oracle
 
-> Inicialmente se intentó usar Oracle Database para esta aplicación, pero debido a problemas con la descarga de Oracle Instant Client (bloqueado en Venezuela sin VPN), se decidió cambiar a PostgreSQL. 
-> 
+> Inicialmente se intentó usar Oracle Database para esta aplicación, pero debido a problemas con la descarga de Oracle Instant Client, se decidió cambiar a PostgreSQL. 
 > Las referencias a Oracle se mantienen comentadas en los siguientes archivos como registro histórico:
 > - `docker-compose.yml` - Configuración del servicio Oracle (comentado)
 > - `Dockerfile` - Instalación de Oracle Instant Client (comentado)
@@ -314,12 +493,5 @@ docker-compose exec app rails test
 
 ## 👥 Desarrollado para
 
-**FactuMarket S.A.**
-
-## 📄 Licencia
-
-[Especificar licencia si aplica]
-
----
-
+**Prueba tecnica Double V Partners**
 > **Nota**: Este proyecto forma parte de una prueba técnica para la modernización del sistema de facturación electrónica.
