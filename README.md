@@ -70,11 +70,27 @@ cd factumarket-einvoice
 docker-compose up --build
 ```
 
-Este comando:
-- Construye las imágenes de los microservicios Rails
-- Inicia PostgreSQL Database (multi-database)
-- Inicia MongoDB
-- Inicia los 3 microservicios: Client Service, Invoice Service, Audit Service
+Este comando levanta todos los servicios:
+- PostgreSQL Database (multi-database)
+- MongoDB
+- **Client Service** (Puerto 3001)
+- **Invoice Service** (Puerto 3002)
+- **Audit Service** (Puerto 3003)
+
+#### Ejecutar microservicios individualmente
+
+```bash
+# Levantar solo Client Service y sus dependencias
+docker-compose up client-service postgres
+
+# Levantar solo Invoice Service y sus dependencias
+docker-compose up invoice-service postgres client-service
+
+# Levantar solo Audit Service y sus dependencias
+docker-compose up audit-service postgres mongodb
+```
+
+**Nota**: Invoice Service depende de Client Service y Audit Service para funcionar completamente.
 
 **Nota**: La primera vez puede tardar varios minutos mientras:
 - Descarga las imágenes base (PostgreSQL, MongoDB, Ruby)
@@ -154,50 +170,107 @@ Cada microservicio tiene sus propias variables de entorno configuradas en `docke
 
 ## 📦 Estructura del Proyecto
 
+### Organización General
+
 ```
 .
 ├── services/                    # Microservicios
-│   ├── client-service/          # Microservicio de Clientes (Puerto 3001)
-│   │   ├── app/
-│   │   │   ├── controllers/     # Api::V1::ClientesController
-│   │   │   ├── models/          # Cliente
-│   │   │   └── exceptions/      # BusinessError
-│   │   ├── config/
-│   │   │   └── database.yml     # PostgreSQL config
-│   │   └── db/
-│   │       └── migrate/         # Migraciones
-│   │
-│   ├── invoice-service/         # Microservicio de Facturas (Puerto 3002)
-│   │   ├── app/
-│   │   │   ├── controllers/     # Api::V1::FacturasController
-│   │   │   ├── models/          # Factura, ItemFactura
-│   │   │   ├── services/        # CrearFacturaService, EmitirFacturaService, etc.
-│   │   │   ├── clients/         # ClientServiceClient, AuditServiceClient
-│   │   │   └── exceptions/      # BusinessError
-│   │   ├── config/
-│   │   │   └── database.yml     # PostgreSQL config
-│   │   └── db/
-│   │       └── migrate/         # Migraciones
-│   │
-│   └── audit-service/           # Microservicio de Auditoría (Puerto 3003)
-│       ├── app/
-│       │   ├── controllers/     # Api::V1::EventosController, ReportesController
-│       │   ├── models/          # EventoAuditoria (Mongoid), ReporteMetricas (ActiveRecord)
-│       │   └── services/        # AgregarMetricasService
-│       ├── config/
-│       │   ├── database.yml     # PostgreSQL config (para reportes)
-│       │   └── mongoid.yml      # MongoDB config (para eventos)
-│       └── db/
-│           └── migrate/         # Migraciones PostgreSQL
+│   ├── client-service/          # Puerto 3001
+│   ├── invoice-service/         # Puerto 3002
+│   └── audit-service/           # Puerto 3003
 │
 ├── docker-compose.yml           # Configuración de todos los servicios
 ├── Dockerfile                   # Imagen Docker compartida
-├── README.md                    # Este archivo
 │
-├── ARCHITECTURE.md              # Documentación general de arquitectura
-├── MICROSERVICES.md             # Responsabilidades e interacciones de microservicios
-├── COMMUNICATION_PATTERNS.md    # Flujos de comunicación y consistencia
-└── ARCHITECTURAL_PRINCIPLES.md  # Principios arquitectónicos aplicados
+├── ARCHITECTURE.md              # Documentación de arquitectura
+├── MICROSERVICES.md             # Responsabilidades e interacciones
+├── COMMUNICATION_PATTERNS.md    # Flujos de comunicación
+└── ARCHITECTURAL_PRINCIPLES.md  # Principios aplicados
+```
+
+### Estructura Interna de un Microservicio (Clean Architecture + MVC)
+
+Cada microservicio sigue los principios de **Clean Architecture** y **MVC**:
+
+```
+services/invoice-service/
+├── app/
+│   ├── controllers/             # MVC - Capa de Presentación
+│   │   └── api/v1/
+│   │       └── facturas_controller.rb    # Recibe HTTP, delega a Services
+│   │
+│   ├── services/                # Clean Architecture - Capa de Aplicación
+│   │   ├── crear_factura_service.rb      # Orquesta casos de uso
+│   │   ├── emitir_factura_service.rb     # Coordina entre capas
+│   │   └── anular_factura_service.rb
+│   │
+│   ├── models/                  # Clean Architecture - Capa de Dominio
+│   │   ├── factura.rb                    # Lógica de negocio
+│   │   └── item_factura.rb               # Validaciones y reglas
+│   │
+│   ├── clients/                 # Clean Architecture - Capa de Infraestructura
+│   │   ├── client_service_client.rb      # Acceso a otros servicios
+│   │   └── audit_service_client.rb
+│   │
+│   └── exceptions/              # Excepciones personalizadas
+│       └── business_error.rb
+│
+├── config/                      # Configuración
+│   └── database.yml             # PostgreSQL
+│
+└── db/
+    └── migrate/                 # Migraciones
+```
+
+#### Aplicación de Clean Architecture
+
+- **Controllers (MVC - Presentación)**: Reciben requests HTTP, validan entrada, delegan a Services
+- **Services (Capa de Aplicación)**: Orquestan casos de uso, coordinan entre capas y servicios externos
+- **Models (Capa de Dominio)**: Contienen lógica de negocio, validaciones y reglas del dominio
+- **Clients (Capa de Infraestructura)**: Acceso a servicios externos y recursos externos
+
+#### Flujo de Datos
+
+```
+HTTP Request → Controller → Service → Model → Database
+                                      ↓
+                                   Client (otros servicios)
+```
+
+**Ejemplo práctico**:
+```ruby
+# 1. Controller (MVC) recibe request
+class FacturasController
+  def create
+    service = CrearFacturaService.new
+    @factura = service.ejecutar(factura_params)  # Delega a Service
+    render json: @factura
+  end
+end
+
+# 2. Service (Aplicación) orquesta
+class CrearFacturaService
+  def ejecutar(params)
+    # Valida con otro servicio (Infraestructura)
+    cliente = @client_service_client.obtener_cliente(params[:cliente_id])
+    
+    # Crea entidad (Dominio)
+    factura = Factura.new(params)
+    factura.save!
+    
+    # Registra auditoría (Infraestructura)
+    @audit_service_client.registrar_evento(...)
+    
+    factura
+  end
+end
+
+# 3. Model (Dominio) contiene lógica de negocio
+class Factura < ApplicationRecord
+  def puede_emitir?
+    estado == "borrador" && items_factura.any? && total > 0
+  end
+end
 ```
 
 ## 🛠️ Comandos Útiles
@@ -324,7 +397,9 @@ audit.registrar_evento('FacturaCreada', 'invoice-service', 'Factura', factura_id
 
 ### Ejemplos de uso de la API
 
-**Crear un cliente:**
+#### Client Service
+
+**1. Crear un cliente:**
 ```bash
 curl -X POST http://localhost:3001/api/v1/clientes \
   -H "Content-Type: application/json" \
@@ -332,23 +407,56 @@ curl -X POST http://localhost:3001/api/v1/clientes \
     "cliente": {
       "nit": "12345678-9",
       "nombre": "Empresa ABC S.A.",
-      "email": "contacto@abc.com"
+      "email": "contacto@abc.com",
+      "telefono": "2222-3333"
     }
   }'
 ```
 
-**Crear una factura:**
+**Respuesta esperada:**
+```json
+{
+  "id": 1,
+  "nit": "12345678-9",
+  "nombre": "Empresa ABC S.A.",
+  "email": "contacto@abc.com",
+  "telefono": "2222-3333",
+  "activo": true
+}
+```
+
+**2. Listar todos los clientes:**
+```bash
+curl http://localhost:3001/api/v1/clientes
+```
+
+**3. Obtener cliente por ID:**
+```bash
+curl http://localhost:3001/api/v1/clientes/1
+```
+
+---
+
+#### Invoice Service
+
+**1. Crear una factura (borrador):**
 ```bash
 curl -X POST http://localhost:3002/api/v1/facturas \
   -H "Content-Type: application/json" \
   -d '{
     "factura": {
       "cliente_id": 1,
-      "items_factura": [
+      "items_factura_attributes": [
         {
           "descripcion": "Producto A",
           "cantidad": 2,
           "precio_unitario": 100.00,
+          "impuesto_porcentaje": 13
+        },
+        {
+          "descripcion": "Producto B",
+          "cantidad": 1,
+          "precio_unitario": 50.00,
           "impuesto_porcentaje": 13
         }
       ]
@@ -356,14 +464,99 @@ curl -X POST http://localhost:3002/api/v1/facturas \
   }'
 ```
 
-**Consultar eventos de auditoría:**
+**Respuesta esperada:**
+```json
+{
+  "id": 1,
+  "numero_factura": null,
+  "cliente_id": 1,
+  "estado": "borrador",
+  "subtotal": 250.00,
+  "impuestos": 32.50,
+  "total": 282.50,
+  "items_factura": [...]
+}
+```
+
+**2. Emitir factura:**
+```bash
+curl -X POST http://localhost:3002/api/v1/facturas/1/emitir \
+  -H "Content-Type: application/json"
+```
+
+**Respuesta esperada:**
+```json
+{
+  "id": 1,
+  "numero_factura": "FM-2025-000001",
+  "estado": "emitida",
+  "fecha_emision": "2025-01-15",
+  "total": 282.50
+}
+```
+
+**3. Listar facturas:**
+```bash
+curl http://localhost:3002/api/v1/facturas
+```
+
+**4. Anular factura:**
+```bash
+curl -X POST http://localhost:3002/api/v1/facturas/1/anular \
+  -H "Content-Type: application/json" \
+  -d '{"motivo": "Error en datos del cliente"}'
+```
+
+---
+
+#### Audit Service
+
+**1. Consultar eventos de auditoría:**
 ```bash
 curl http://localhost:3003/api/v1/auditoria/eventos
 ```
 
-**Consultar reportes:**
+**Respuesta esperada:**
+```json
+[
+  {
+    "id": "...",
+    "evento": "FacturaCreada",
+    "servicio": "invoice-service",
+    "entidad_tipo": "Factura",
+    "entidad_id": "1",
+    "timestamp": "2025-01-15T10:30:00Z",
+    "datos": {...}
+  }
+]
+```
+
+**2. Consultar reportes (métricas agregadas):**
 ```bash
-curl http://localhost:3003/api/v1/auditoria/reportes?desde=2024-01-15
+curl "http://localhost:3003/api/v1/auditoria/reportes?desde=2025-01-15&servicio=invoice-service"
+```
+
+**Respuesta esperada:**
+```json
+[
+  {
+    "fecha": "2025-01-15",
+    "servicio": "invoice-service",
+    "evento": "FacturaCreada",
+    "cantidad": 5
+  },
+  {
+    "fecha": "2025-01-15",
+    "servicio": "invoice-service",
+    "evento": "FacturaEmitida",
+    "cantidad": 3
+  }
+]
+```
+
+**3. Resumen de reportes:**
+```bash
+curl http://localhost:3003/api/v1/auditoria/reportes/resumen?desde=2025-01-15
 ```
 
 ## ⚠️ Notas Importantes
