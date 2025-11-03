@@ -192,9 +192,12 @@ Cada microservicio tiene sus propias variables de entorno configuradas en `docke
 │
 ├── docker-compose.yml           # Configuración de todos los servicios
 ├── Dockerfile                   # Imagen Docker compartida
-├── ARCHITECTURE.md              # Documentación de arquitectura
-├── ARCHITECTURE_DIAGRAM.md      # Diagramas detallados
-└── README.md                    # Este archivo
+├── README.md                    # Este archivo
+│
+├── ARCHITECTURE.md              # Documentación general de arquitectura
+├── MICROSERVICES.md             # Responsabilidades e interacciones de microservicios
+├── COMMUNICATION_PATTERNS.md    # Flujos de comunicación y consistencia
+└── ARCHITECTURAL_PRINCIPLES.md  # Principios arquitectónicos aplicados
 ```
 
 ## 🛠️ Comandos Útiles
@@ -469,10 +472,35 @@ docker-compose exec app rails test
 
 ## 📚 Documentación Adicional
 
-### Diagramas y Arquitectura
-- [Diagrama de Arquitectura Interactivo (Lucidchart)](https://lucid.app/lucidchart/9eb7cb4c-87ee-4bc0-a473-edaee5888e47/edit?viewport_loc=3777%2C-2018%2C1970%2C1079%2C0_0&invitationId=inv_2f7e9ddf-dd90-4549-847c-df6ce3a729a2)
-- `ARCHITECTURE.md` - Documentación completa de la arquitectura
-- `ARCHITECTURE_DIAGRAM.md` - Diagramas detallados en formato Mermaid
+### Documentación de Arquitectura
+
+- **[ARCHITECTURE.md](ARCHITECTURE.md)** - Documentación general de la arquitectura del sistema
+  - Microservicios principales
+  - Estrategia de persistencia
+  - Clean Architecture aplicada
+  - Validaciones de negocio
+  - Manejo de errores
+
+- **[MICROSERVICES.md](MICROSERVICES.md)** - Responsabilidades e interacciones de cada microservicio
+  - Client Service: Gestión de clientes
+  - Invoice Service: Gestión de facturas y reglas de negocio
+  - Audit Service: Auditoría y reportes
+  - Comunicación entre microservicios
+  - Flujos principales
+
+- **[COMMUNICATION_PATTERNS.md](COMMUNICATION_PATTERNS.md)** - Flujos de comunicación y consistencia
+  - Estrategia de comunicación (REST síncrono)
+  - Garantía de consistencia entre servicios
+  - Manejo de errores en comunicación
+
+- **[ARCHITECTURAL_PRINCIPLES.md](ARCHITECTURAL_PRINCIPLES.md)** - Principios arquitectónicos aplicados
+  - Microservicios: Independencia, escalabilidad, despliegue autónomo
+  - Clean Architecture: Separación de capas (dominio, aplicación, infraestructura)
+  - MVC: Organización en la capa de exposición
+
+### Diagramas
+
+- [Diagrama de Arquitectura Interactivo (Lucidchart)](https://lucid.app/lucidchart/9eb7cb4c-87ee-4bc0-a473-edaee5888e47/edit?viewport_loc=3777%2C-2018%2C1970%2C1079%2C0_0&invitationId=inv_2f7e9ddf-dd90-4549-847c-df6ce3a729a2) - Vista interactiva de la arquitectura completa
 
 ### Tecnologías Utilizadas
 - [Ruby on Rails Guides](https://guides.rubyonrails.org/)
