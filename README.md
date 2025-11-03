@@ -685,6 +685,15 @@ docker-compose exec app rails test
 
 ## 📚 Documentación Adicional
 
+### Guías de Uso
+
+- **[POSTMAN_EXAMPLES.md](POSTMAN_EXAMPLES.md)** - Ejemplos completos para Postman
+  - Configuración de variables de entorno
+  - Todos los endpoints de cada microservicio
+  - Ejemplos de requests y respuestas
+  - Flujos completos de ejemplo
+  - Códigos de error y validaciones
+
 ### Documentación de Arquitectura
 
 - **[ARCHITECTURE.md](ARCHITECTURE.md)** - Documentación general de la arquitectura del sistema
