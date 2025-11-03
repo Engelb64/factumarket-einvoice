@@ -45,112 +45,117 @@ end
 facturas_creadas = 0
 facturas_existentes = 0
 
-# Factura 1: Borrador con items
+# Factura 1: Borrador con items (usar CrearFacturaService para registrar eventos de auditoría)
 if cliente_abc
-  factura = Factura.find_or_initialize_by(
-    cliente_id: cliente_abc,
-    estado: 'borrador',
-    numero_factura: nil
-  )
+  # Verificar si ya existe una factura borrador para este cliente
+  factura_existente = Factura.where(cliente_id: cliente_abc, estado: 'borrador', numero_factura: nil).first
   
-  if factura.new_record?
-    factura.save(validate: false)
-    
-    factura.items_factura.build(
-      descripcion: "Producto A - Servicio de Consultoría",
-      cantidad: 2,
-      precio_unitario: 100.00,
-      impuesto_porcentaje: 13
-    )
-    
-    factura.items_factura.build(
-      descripcion: "Producto B - Licencia Mensual",
-      cantidad: 1,
-      precio_unitario: 50.00,
-      impuesto_porcentaje: 13
-    )
-    
-    if factura.save
-      factura.calcular_totales
-      factura.save
+  unless factura_existente
+    begin
+      service = CrearFacturaService.new
+      params = {
+        cliente_id: cliente_abc,
+        items_factura: [
+          {
+            descripcion: "Producto A - Servicio de Consultoría",
+            cantidad: 2,
+            precio_unitario: 100.00,
+            impuesto_porcentaje: 13
+          },
+          {
+            descripcion: "Producto B - Licencia Mensual",
+            cantidad: 1,
+            precio_unitario: 50.00,
+            impuesto_porcentaje: 13
+          }
+        ]
+      }
+      
+      factura = service.ejecutar(params)
       facturas_creadas += 1
-      puts "  ✅ Factura borrador creada: ID #{factura.id} (Total: $#{factura.total})"
-    else
-      puts "  ❌ Error creando factura: #{factura.errors.full_messages.join(', ')}"
+      puts "  ✅ Factura borrador creada: ID #{factura.id} (Total: $#{factura.total}) - Evento de auditoría registrado"
+    rescue => e
+      puts "  ❌ Error creando factura: #{e.message}"
     end
   else
     facturas_existentes += 1
-    puts "  ⏭️  Factura ya existe: ID #{factura.id}"
+    puts "  ⏭️  Factura ya existe: ID #{factura_existente.id}"
   end
 end
 
 # Factura 2: Emitida (requiere generar número)
 if cliente_abc
-  factura = Factura.find_or_initialize_by(
-    cliente_id: cliente_abc,
-    estado: 'emitida'
-  )
+  # Verificar si ya existe una factura emitida para este cliente con estos items
+  factura_existente = Factura.where(cliente_id: cliente_abc, estado: 'emitida')
+                              .where.not(numero_factura: nil).first
   
-  if factura.new_record?
-    factura.save(validate: false)
-    
-    factura.items_factura.build(
-      descripcion: "Producto Premium - Suscripción Anual",
-      cantidad: 3,
-      precio_unitario: 200.00,
-      impuesto_porcentaje: 13
-    )
-    
-    factura.items_factura.build(
-      descripcion: "Servicio de Soporte Técnico",
-      cantidad: 1,
-      precio_unitario: 150.00,
-      impuesto_porcentaje: 13
-    )
-    
-    if factura.save
-      factura.calcular_totales
-      # Emitir la factura (genera número)
-      begin
-        factura.emitir!
-        facturas_creadas += 1
-        puts "  ✅ Factura emitida creada: ID #{factura.id} (#{factura.numero_factura} - Total: $#{factura.total})"
-      rescue => e
-        puts "  ⚠️  Error emitiendo factura: #{e.message}"
-      end
+  unless factura_existente
+    begin
+      # Crear factura usando el servicio (registra evento FacturaCreada)
+      service = CrearFacturaService.new
+      params = {
+        cliente_id: cliente_abc,
+        items_factura: [
+          {
+            descripcion: "Producto Premium - Suscripción Anual",
+            cantidad: 3,
+            precio_unitario: 200.00,
+            impuesto_porcentaje: 13
+          },
+          {
+            descripcion: "Servicio de Soporte Técnico",
+            cantidad: 1,
+            precio_unitario: 150.00,
+            impuesto_porcentaje: 13
+          }
+        ]
+      }
+      
+      factura = service.ejecutar(params)
+      
+      # Emitir la factura usando el servicio (registra evento FacturaEmitida)
+      emitir_service = EmitirFacturaService.new
+      factura = emitir_service.ejecutar(factura.id)
+      
+      facturas_creadas += 1
+      puts "  ✅ Factura emitida creada: ID #{factura.id} (#{factura.numero_factura} - Total: $#{factura.total}) - Eventos de auditoría registrados"
+    rescue => e
+      puts "  ⚠️  Error creando/emitiendo factura: #{e.message}"
     end
   else
     facturas_existentes += 1
-    puts "  ⏭️  Factura ya existe: ID #{factura.id} (#{factura.numero_factura})"
+    puts "  ⏭️  Factura ya existe: ID #{factura_existente.id} (#{factura_existente.numero_factura})"
   end
 end
 
 # Factura 3: Borrador simple
 if cliente_xyz
-  factura = Factura.find_or_initialize_by(
-    cliente_id: cliente_xyz,
-    estado: 'borrador'
-  )
+  factura_existente = Factura.where(cliente_id: cliente_xyz, estado: 'borrador', numero_factura: nil).first
   
-  if factura.new_record?
-    factura.save(validate: false)
-    
-    factura.items_factura.build(
-      descripcion: "Producto C - Servicio de Desarrollo",
-      cantidad: 5,
-      precio_unitario: 80.00,
-      impuesto_porcentaje: 19
-    )
-    
-    if factura.save
-      factura.calcular_totales
-      factura.save
+  unless factura_existente
+    begin
+      service = CrearFacturaService.new
+      params = {
+        cliente_id: cliente_xyz,
+        items_factura: [
+          {
+            descripcion: "Producto C - Servicio de Desarrollo",
+            cantidad: 5,
+            precio_unitario: 80.00,
+            impuesto_porcentaje: 19
+          }
+        ]
+      }
+      
+      factura = service.ejecutar(params)
       facturas_creadas += 1
-      puts "  ✅ Factura borrador creada: ID #{factura.id} (Total: $#{factura.total})"
+      puts "  ✅ Factura borrador creada: ID #{factura.id} (Total: $#{factura.total}) - Evento de auditoría registrado"
+    rescue => e
+      puts "  ❌ Error creando factura: #{e.message}"
     end
   else
     facturas_existentes += 1
-    puts "  ⏭️  Factura ya existe: ID #{factura.id}"
+    puts "  ⏭️  Factura ya existe: ID #{factura_existente.id}"
   end
 end
 

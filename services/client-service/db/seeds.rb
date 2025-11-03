@@ -43,19 +43,24 @@ clientes_creados = 0
 clientes_existentes = 0
 
 clientes_data.each do |cliente_attrs|
-  cliente = Cliente.find_or_initialize_by(nit: cliente_attrs[:nit])
-  
-  if cliente.new_record?
-    cliente.assign_attributes(cliente_attrs)
-    if cliente.save
-      clientes_creados += 1
-      puts "  ✅ Cliente creado: #{cliente.nombre} (NIT: #{cliente.nit})"
+  begin
+    cliente = Cliente.find_or_initialize_by(nit: cliente_attrs[:nit])
+    
+    if cliente.new_record?
+      cliente.assign_attributes(cliente_attrs)
+      if cliente.save
+        clientes_creados += 1
+        puts "  ✅ Cliente creado: #{cliente.nombre} (NIT: #{cliente.nit})"
+      else
+        puts "  ❌ Error creando cliente #{cliente_attrs[:nombre]}: #{cliente.errors.full_messages.join(', ')}"
+      end
     else
-      puts "  ❌ Error creando cliente #{cliente_attrs[:nombre]}: #{cliente.errors.full_messages.join(', ')}"
+      clientes_existentes += 1
+      puts "  ⏭️  Cliente ya existe: #{cliente.nombre} (NIT: #{cliente.nit})"
     end
-  else
-    clientes_existentes += 1
-    puts "  ⏭️  Cliente ya existe: #{cliente.nombre} (NIT: #{cliente.nit})"
+  rescue => e
+    puts "  ❌ Excepción creando cliente #{cliente_attrs[:nombre]}: #{e.message}"
+    puts "     #{e.backtrace.first(3).join("\n     ")}" if Rails.env.development?
   end
 end
 
