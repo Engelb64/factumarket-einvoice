@@ -1,0 +1,26 @@
+# Configuración para Oracle Database
+# IMPORTANTE: Este archivo no se usa directamente.
+# Las credenciales están configuradas en docker-compose.yml y se pueden usar variables de entorno.
+
+default: &default
+  adapter: oracle_enhanced
+  username: <%= ENV.fetch("ORACLE_USER") { "system" } %>
+  password: <%= ENV.fetch("ORACLE_PASSWORD") { "oracle123" } %>
+  host: <%= ENV.fetch("ORACLE_HOST") { "oracle" } %>
+  port: <%= ENV.fetch("ORACLE_PORT") { "1521" } %>
+  database: <%= ENV.fetch("ORACLE_DATABASE") { "XE" } %>
+  encoding: utf8
+  pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
+
+development:
+  <<: *default
+  database: XE
+
+test:
+  <<: *default
+  database: XE_TEST
+
+production:
+  <<: *default
+  database: XE
+

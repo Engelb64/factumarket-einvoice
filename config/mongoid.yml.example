@@ -1,0 +1,27 @@
+# Configuración para MongoDB (Mongoid)
+# Copia este archivo a config/mongoid.yml
+
+development:
+  clients:
+    default:
+      database: my_rails_db
+      hosts:
+        - mongodb:27017
+      options:
+        server_selection_timeout: 5
+        max_pool_size: 5
+
+test:
+  clients:
+    default:
+      database: my_rails_db_test
+      hosts:
+        - mongodb:27017
+
+production:
+  clients:
+    default:
+      database: my_rails_db_prod
+      hosts:
+        - mongodb:27017
+
