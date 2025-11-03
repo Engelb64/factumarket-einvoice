@@ -4,9 +4,20 @@ source "https://rubygems.org"
 gem "rails", "~> 7.2.3"
 # The original asset pipeline for Rails [https://github.com/rails/sprockets-rails]
 gem "sprockets-rails"
+# Base de datos PostgreSQL
+gem "pg", "~> 1.5"
+
+# ============================================================================
+# ORACLE (COMENTADO - Registro histórico de intento inicial)
+# ============================================================================
+# Se intentó usar Oracle Database inicialmente, pero debido a problemas con
+# la descarga de Oracle Instant Client (bloqueado en Venezuela), se cambió
+# a PostgreSQL. Se mantiene esta sección como registro histórico.
+#
 # Base de datos Oracle
-gem "ruby-oci8", "~> 2.2.13"
-gem "activerecord-oracle_enhanced-adapter", "~> 7.2"
+# gem "ruby-oci8", "~> 2.2.13"
+# gem "activerecord-oracle_enhanced-adapter", "~> 7.2"
+# ============================================================================
 
 # Base de datos MongoDB
 gem "mongoid", "~> 8.0"

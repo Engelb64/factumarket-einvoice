@@ -12,8 +12,10 @@ Modernizar el sistema de facturación electrónica de FactuMarket S.A., actualme
 ## 🏗️ Arquitectura
 
 El sistema utiliza dos bases de datos:
-- **Oracle Database**: Base de datos relacional para datos transaccionales y auditoría
+- **PostgreSQL**: Base de datos relacional para datos transaccionales y auditoría
 - **MongoDB**: Base de datos NoSQL para documentos y logs de facturación
+
+> **Nota histórica**: Inicialmente se intentó usar Oracle Database, pero debido a problemas con la descarga de Oracle Instant Client (bloqueado en Venezuela), se cambió a PostgreSQL. Las referencias a Oracle se mantienen comentadas en el código como registro histórico.
 
 ## 📋 Requisitos Previos
 
@@ -34,7 +36,7 @@ cd factumarket-einvoice
 Si los archivos de configuración no existen, cópialos desde los ejemplos:
 
 ```bash
-# Configurar Oracle
+# Configurar PostgreSQL
 cp config/database.yml.example config/database.yml
 
 # Configurar MongoDB
@@ -50,14 +52,13 @@ docker-compose up --build
 ```
 
 Este comando:
-- Construye la imagen de la aplicación Rails (descarga Oracle Instant Client)
-- Inicia Oracle Database (tardará ~2-3 minutos en estar listo)
+- Construye la imagen de la aplicación Rails
+- Inicia PostgreSQL Database
 - Inicia MongoDB
 - Inicia la aplicación Rails
 
 **Nota**: La primera vez puede tardar varios minutos mientras:
-- Descarga las imágenes base (Oracle, MongoDB, Ruby)
-- Descarga e instala Oracle Instant Client
+- Descarga las imágenes base (PostgreSQL, MongoDB, Ruby)
 - Construye la imagen de la aplicación
 - Instala todas las gemas de Ruby
 
@@ -68,38 +69,34 @@ Este comando:
 Una vez que todos los servicios estén corriendo, accede a:
 
 - **Rails App**: http://localhost:3000
-- **Oracle Database**: 
+- **PostgreSQL Database**: 
   - Host: `localhost`
-  - Puerto: `1521`
-  - Usuario: `system`
-  - Contraseña: `oracle123`
-  - Service Name: `XE`
+  - Puerto: `5432`
+  - Usuario: `postgres`
+  - Contraseña: `postgres123`
+  - Database: `factumarket_development`
 - **MongoDB**: 
   - Host: `localhost`
   - Puerto: `27017`
   - Database: `my_rails_db`
-- **Oracle EM Express**: http://localhost:5500
 
 ## ⚙️ Configuración de Bases de Datos
 
-### Oracle Database
+### PostgreSQL Database
 
-La configuración se encuentra en `config/database.yml` (si no existe, cópialo desde `config/database.yml.example`).
+La configuración se encuentra en `config/database.yml`.
 
 Las credenciales se pueden configurar mediante variables de entorno en `docker-compose.yml` o directamente en el archivo. Por defecto:
 
 ```yaml
-username: system
-password: oracle123
-host: oracle
-port: 1521
-database: XE
+username: postgres
+password: postgres123
+host: postgres
+port: 5432
+database: factumarket_development
 ```
 
-**Nota**: Si `config/database.yml` no existe, cópialo desde el ejemplo:
-```bash
-cp config/database.yml.example config/database.yml
-```
+**Nota**: Las credenciales están configuradas en `docker-compose.yml` y se pueden modificar allí.
 
 ### MongoDB
 
@@ -122,7 +119,7 @@ cp config/mongoid.yml.example config/mongoid.yml
 
 Las variables de entorno están configuradas en `docker-compose.yml`. Puedes modificarlas según tus necesidades:
 
-- `ORACLE_HOST`, `ORACLE_PORT`, `ORACLE_USER`, `ORACLE_PASSWORD`, `ORACLE_DATABASE`
+- `POSTGRES_HOST`, `POSTGRES_PORT`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DATABASE`
 - `MONGO_HOST`, `MONGO_PORT`, `MONGO_DATABASE`
 - `RAILS_ENV`, `RAILS_LOG_TO_STDOUT`
 
@@ -132,10 +129,10 @@ Las variables de entorno están configuradas en `docker-compose.yml`. Puedes mod
 .
 ├── app/                    # Código de la aplicación Rails
 │   ├── controllers/        # Controladores
-│   ├── models/             # Modelos (ActiveRecord para Oracle, Mongoid para MongoDB)
+│   ├── models/             # Modelos (ActiveRecord para PostgreSQL, Mongoid para MongoDB)
 │   └── views/              # Vistas
 ├── config/                 # Configuración
-│   ├── database.yml        # Configuración Oracle (ActiveRecord)
+│   ├── database.yml        # Configuración PostgreSQL (ActiveRecord)
 │   └── mongoid.yml         # Configuración MongoDB
 ├── docker-compose.yml      # Configuración Docker Compose
 ├── Dockerfile              # Imagen Docker de la aplicación
@@ -153,8 +150,8 @@ docker-compose logs -f
 # Solo la aplicación Rails
 docker-compose logs -f app
 
-# Solo Oracle
-docker-compose logs -f oracle
+# Solo PostgreSQL
+docker-compose logs -f postgres
 
 # Solo MongoDB
 docker-compose logs -f mongodb
@@ -169,7 +166,7 @@ docker-compose exec app rails console
 # Generar un modelo
 docker-compose exec app rails generate model NombreModelo
 
-# Ejecutar migraciones (Oracle)
+# Ejecutar migraciones (PostgreSQL)
 docker-compose exec app rails db:migrate
 
 # Instalar nuevas gemas
@@ -183,8 +180,8 @@ docker-compose restart app
 # MongoDB shell
 docker-compose exec mongodb mongosh my_rails_db
 
-# Oracle SQL*Plus
-docker-compose exec oracle sqlplus system/oracle123@XE
+# PostgreSQL psql
+docker-compose exec postgres psql -U postgres -d factumarket_development
 ```
 
 ### Detener y reiniciar servicios
@@ -208,12 +205,12 @@ docker-compose restart app
 
 ## 📊 Uso de las Bases de Datos
 
-### Modelos con ActiveRecord (Oracle)
+### Modelos con ActiveRecord (PostgreSQL)
 
 ```ruby
 # app/models/producto.rb
 class Producto < ApplicationRecord
-  # Se conecta automáticamente a Oracle usando config/database.yml
+  # Se conecta automáticamente a PostgreSQL usando config/database.yml
 end
 ```
 
@@ -232,18 +229,19 @@ end
 
 ## ⚠️ Notas Importantes
 
-1. **Oracle Database** requiere aproximadamente 2-3 minutos para inicializarse completamente la primera vez
+1. **PostgreSQL** se inicializa rápidamente (10-20 segundos)
 2. Los health checks en `docker-compose.yml` esperan a que las bases de datos estén listas antes de iniciar Rails
 3. Los volúmenes Docker mantienen los datos persistidos entre reinicios
 4. Los cambios en código (controladores, modelos, vistas) se recargan automáticamente gracias al volumen montado
 
 ## 🔍 Troubleshooting
 
-### Oracle no se conecta
+### PostgreSQL no se conecta
 
-- Espera al menos 2-3 minutos después de iniciar los contenedores
-- Verifica el health check: `docker-compose ps oracle`
-- Revisa los logs: `docker-compose logs oracle`
+- Verifica que el contenedor esté corriendo: `docker-compose ps postgres`
+- Verifica el health check: `docker-compose ps postgres`
+- Revisa los logs: `docker-compose logs postgres`
+- Verifica las credenciales en `docker-compose.yml`
 
 ### MongoDB no se conecta
 
@@ -252,9 +250,10 @@ end
 
 ### La aplicación no arranca
 
-- Verifica que Oracle y MongoDB estén "healthy": `docker-compose ps`
+- Verifica que PostgreSQL y MongoDB estén "healthy": `docker-compose ps`
 - Revisa los logs de la aplicación: `docker-compose logs app`
 - Verifica que las gemas estén instaladas: `docker-compose exec app bundle check`
+- Verifica la conexión a la base de datos: `docker-compose exec app rails db:version`
 
 ### Puerto 3000 ya está en uso
 
@@ -298,8 +297,20 @@ docker-compose exec app rails test
 
 - [Ruby on Rails Guides](https://guides.rubyonrails.org/)
 - [Mongoid Documentation](https://docs.mongodb.com/mongoid/)
-- [Oracle Enhanced Adapter](https://github.com/rsim/oracle-enhanced)
+- [PostgreSQL Documentation](https://www.postgresql.org/docs/)
 - [Docker Compose Documentation](https://docs.docker.com/compose/)
+
+---
+
+## 📝 Nota Histórica sobre Oracle
+
+> Inicialmente se intentó usar Oracle Database para esta aplicación, pero debido a problemas con la descarga de Oracle Instant Client (bloqueado en Venezuela sin VPN), se decidió cambiar a PostgreSQL. 
+> 
+> Las referencias a Oracle se mantienen comentadas en los siguientes archivos como registro histórico:
+> - `docker-compose.yml` - Configuración del servicio Oracle (comentado)
+> - `Dockerfile` - Instalación de Oracle Instant Client (comentado)
+> - `Gemfile` - Gemas de Oracle (comentado)
+> - `config/database.yml` - Configuración de Oracle (comentado)
 
 ## 👥 Desarrollado para
 
