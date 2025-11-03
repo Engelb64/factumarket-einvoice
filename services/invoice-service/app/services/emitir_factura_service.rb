@@ -6,10 +6,7 @@ class EmitirFacturaService
   def ejecutar(factura_id)
     factura = Factura.find(factura_id)
     
-    unless factura.puede_emitir?
-      raise StandardError, 'La factura no puede ser emitida. Debe estar en borrador, tener items y un cliente válido.'
-    end
-
+    # La validación ya se hace en factura.emitir! con BusinessError
     factura.emitir!
     
     # Registrar evento de auditoría

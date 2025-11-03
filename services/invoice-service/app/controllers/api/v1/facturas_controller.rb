@@ -16,10 +16,6 @@ module Api
         service = CrearFacturaService.new
         @factura = service.ejecutar(factura_params)
         render json: @factura, include: :items_factura, status: :created
-      rescue ActiveRecord::RecordInvalid => e
-        render json: { errors: e.record.errors.full_messages }, status: :unprocessable_entity
-      rescue StandardError => e
-        render json: { error: e.message }, status: :unprocessable_entity
       end
 
       def update
@@ -53,8 +49,6 @@ module Api
         service = EmitirFacturaService.new
         @factura = service.ejecutar(@factura.id)
         render json: @factura, include: :items_factura
-      rescue StandardError => e
-        render json: { error: e.message }, status: :unprocessable_entity
       end
 
       def anular
@@ -62,8 +56,6 @@ module Api
         motivo = params[:motivo] || params[:factura]&.[](:motivo)
         @factura = service.ejecutar(@factura.id, motivo)
         render json: @factura, include: :items_factura
-      rescue StandardError => e
-        render json: { error: e.message }, status: :unprocessable_entity
       end
 
       private

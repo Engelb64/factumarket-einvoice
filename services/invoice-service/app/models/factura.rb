@@ -4,8 +4,13 @@ class Factura < ApplicationRecord
   validates :cliente_id, presence: true
   validates :estado, inclusion: { in: %w[borrador emitida anulada] }
   validates :numero_factura, uniqueness: true, allow_nil: true
+  validate :validar_items_antes_de_emitir, if: :emitida?
 
   before_save :calcular_totales
+
+  scope :borradores, -> { where(estado: 'borrador') }
+  scope :emitidas, -> { where(estado: 'emitida') }
+  scope :anuladas, -> { where(estado: 'anulada') }
 
   ESTADOS = {
     borrador: "borrador",
@@ -20,15 +25,36 @@ class Factura < ApplicationRecord
   end
 
   def puede_emitir?
-    estado == "borrador" && items_factura.any? && cliente_id.present?
+    estado == "borrador" && items_factura.any? && cliente_id.present? && total.to_f > 0
   end
 
   def puede_anular?
     estado == "emitida"
   end
 
+  def borrador?
+    estado == "borrador"
+  end
+
+  def emitida?
+    estado == "emitida"
+  end
+
+  def anulada?
+    estado == "anulada"
+  end
+
   def emitir!
-    raise "La factura no puede ser emitida" unless puede_emitir?
+    raise BusinessError.new(
+      "La factura no puede ser emitida",
+      code: 'FACTURA_NO_PUEDE_EMITIRSE',
+      details: {
+        estado: estado,
+        tiene_items: items_factura.any?,
+        tiene_cliente: cliente_id.present?,
+        total_mayor_cero: total.to_f > 0
+      }
+    ) unless puede_emitir?
     
     self.numero_factura ||= generar_numero_factura
     self.fecha_emision = Date.current
@@ -37,7 +63,11 @@ class Factura < ApplicationRecord
   end
 
   def anular!(motivo = nil)
-    raise "La factura no puede ser anulada" unless puede_anular?
+    raise BusinessError.new(
+      "La factura no puede ser anulada. Solo se pueden anular facturas emitidas.",
+      code: 'FACTURA_NO_PUEDE_ANULARSE',
+      details: { estado: estado }
+    ) unless puede_anular?
     
     self.estado = "anulada"
     self.updated_at = Time.current # Forzar actualización
@@ -45,6 +75,12 @@ class Factura < ApplicationRecord
   end
 
   private
+
+  def validar_items_antes_de_emitir
+    if items_factura.empty?
+      errors.add(:base, "Una factura debe tener al menos un item antes de ser emitida")
+    end
+  end
 
   def generar_numero_factura
     year = Date.current.year

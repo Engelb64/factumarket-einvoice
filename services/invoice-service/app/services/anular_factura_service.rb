@@ -6,10 +6,7 @@ class AnularFacturaService
   def ejecutar(factura_id, motivo = nil)
     factura = Factura.find(factura_id)
     
-    unless factura.puede_anular?
-      raise StandardError, 'La factura no puede ser anulada. Solo se pueden anular facturas emitidas.'
-    end
-
+    # La validación ya se hace en factura.anular! con BusinessError
     factura.anular!(motivo)
     
     # Registrar evento de auditoría
