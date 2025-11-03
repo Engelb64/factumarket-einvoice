@@ -683,6 +683,46 @@ GET {{base_url_audit}}/api/v1/auditoria/reportes/resumen?desde=2025-01-15
 }
 ```
 
+**5. Consultar eventos por factura ID:**
+```bash
+curl http://localhost:3003/api/v1/auditoria/factura/1
+```
+
+**Ejemplo de Respuesta:**
+```json
+[
+  {
+    "_id": {
+      "$oid": "65a1b2c3d4e5f6g7h8i9j0k1"
+    },
+    "evento": "FacturaCreada",
+    "timestamp": "2025-01-15T10:30:00Z",
+    "servicio": "invoice-service",
+    "entidad_tipo": "Factura",
+    "entidad_id": "1",
+    "datos": {
+      "cliente_id": 1,
+      "estado": "borrador",
+      "total": "250.00"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "65a1b2c3d4e5f6g7h8i9j0k2"
+    },
+    "evento": "FacturaEmitida",
+    "timestamp": "2025-01-15T11:00:00Z",
+    "servicio": "invoice-service",
+    "entidad_tipo": "Factura",
+    "entidad_id": "1",
+    "datos": {
+      "numero_factura": "FM-2025-000001",
+      "total": "250.00"
+    }
+  }
+]
+```
+
 ---
 
 ## 🔄 Flujo Completo de Ejemplo

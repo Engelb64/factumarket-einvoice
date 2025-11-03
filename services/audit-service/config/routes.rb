@@ -15,6 +15,9 @@ Rails.application.routes.draw do
             get :resumen
           end
         end
+        
+        # Endpoint específico para consultar eventos por facturaId
+        get 'factura/:factura_id', to: 'eventos#por_factura', as: :eventos_por_factura
       end
     end
   end

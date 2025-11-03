@@ -35,6 +35,18 @@ module Api
         render json: { error: "Evento no encontrado" }, status: :not_found
       end
 
+      # GET /api/v1/auditoria/factura/:factura_id
+      # Consultar eventos relacionados con una factura específica
+      def por_factura
+        factura_id = params[:factura_id]
+        eventos = EventoAuditoria.where(
+          entidad_tipo: 'Factura',
+          entidad_id: factura_id.to_s
+        ).order_by(timestamp: :desc)
+        
+        render json: eventos
+      end
+
       private
 
       def evento_params
